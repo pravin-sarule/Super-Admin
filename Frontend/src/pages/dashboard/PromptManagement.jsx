@@ -62,8 +62,8 @@ const PromptManagement = () => {
   const [fetchValueLoading, setFetchValueLoading] = useState({});
 
   // API Base URL
-  const API_BASE_URL = 'http://localhost:4000/api/secrets';
-  const LLM_API_BASE_URL = 'http://localhost:4000/api/llm';
+  const API_BASE_URL = 'https://super-adimn-backend-110685455967.asia-south1.run.app/api/secrets';
+  const LLM_API_BASE_URL = 'https://super-adimn-backend-110685455967.asia-south1.run.app/api/llm';
 
   // Get user info from token
   useEffect(() => {

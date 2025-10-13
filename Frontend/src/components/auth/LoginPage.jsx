@@ -22,7 +22,7 @@ const LoginPage = ({ setAuthStatus }) => { // Added setAuthStatus prop
     setSuccess('');
 
     try {
-      const response = await axios.post('https://admin-backend-110685455967.asia-south1.run.app/api/auth/login',
+      const response = await axios.post('https://super-adimn-backend-110685455967.asia-south1.run.app/api/auth/login',
         { email, password },
         {
           headers: {
