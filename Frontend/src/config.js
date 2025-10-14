@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:4000/api';
+const API_BASE_URL = 'https://super-adimn-backend-110685455967.asia-south1.run.app/api';
 
 const ADMIN_CREATE_URL = `${API_BASE_URL}/admins/create`;
 const ADMIN_GET_ALL_URL = `${API_BASE_URL}/admins`;
