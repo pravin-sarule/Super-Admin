@@ -13,6 +13,7 @@ require('./models/support_query');
 
 // --- Routes ---
 const authRoutes = require('./routes/authRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 const userRoutes = require('./routes/userRoutes');
 const adminTemplateRoutes = require('./routes/adminTemplateRoutes');
 const planRoutes = require('./routes/planRoutes');
@@ -50,6 +51,9 @@ console.log('🔧 INITIALIZING ROUTES WITH DATABASE CONNECTIONS');
 console.log('='.repeat(60));
 
 // --- Routes ---
+
+app.use('/api/admins', adminRoutes(pool));
+
 console.log('📌 /api/auth           → Using Main DB (pool)');
 app.use('/api/auth', authRoutes(pool));
 
