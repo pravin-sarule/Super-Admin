@@ -38,7 +38,7 @@ const Sidebar = ({ isOpen, userRole }) => { // Accept userRole as a prop
       name: 'Dashboard',
       path: '/dashboard',
       icon: LayoutDashboard,
-      roles: ['super-admin', 'user-admin', 'account-admin', 'support']
+      roles: ['super-admin', 'user-admin', 'account-admin', 'support-admin']
     },
     {
       name: 'User Management',
@@ -56,7 +56,7 @@ const Sidebar = ({ isOpen, userRole }) => { // Accept userRole as a prop
       name: 'Prompt Management',
       path: '/dashboard/prompts',
       icon: Edit,
-      roles: ['super-admin', 'user-admin']
+      roles: ['super-admin']
     },
     {
       name: 'Content Management',
