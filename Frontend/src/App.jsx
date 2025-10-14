@@ -5,11 +5,12 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import LandingPage from './pages/LandingPage';
 import DashboardLayout from './pages/dashboard/DashboardLayout';
 import DashboardContent from './pages/dashboard/DashboardContent';
-// import UserManagement from './pages/dashboard/UserManagement';
-// import ContentManagement from './pages/dashboard/ContentManagement';
+import UserManagement from './pages/dashboard/UserManagement';
+import AdminManagement from './components/auth/Admins/AdminManagement';
+import ContentManagement from './pages/dashboard/ContentManagement';
 // import TemplateManagement from './pages/dashboard/TemplateManagement';
-// import SubscriptionManagement from './pages/dashboard/SubscriptionManagement';
-// import SupportHelp from './pages/dashboard/SupportHelp';
+import SubscriptionManagement from './pages/dashboard/SubscriptionManagement';
+import SupportHelp from './pages/dashboard/SupportHelp';
 import PromptManagement from './pages/dashboard/PromptManagement';
 import './App.css';
 import './index.css';
@@ -58,12 +59,13 @@ function App() {
         <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<DashboardContent />} /> {/* Default dashboard content */}
-            {/* <Route path="users" element={<UserManagement />} /> */}
-            {/* <Route path="articles" element={<ContentManagement />} />
-            <Route path="templates" element={<TemplateManagement />} />
-            <Route path="subscriptions" element={<SubscriptionManagement />} /> */}
+            <Route path="users" element={<UserManagement />} />
+            <Route path="admins" element={<AdminManagement />} />
+            <Route path="content" element={<ContentManagement />} />
+            {/* <Route path="templates" element={<TemplateManagement />} /> */}
+            <Route path="subscriptions" element={<SubscriptionManagement />} />
             <Route path="prompts" element={<PromptManagement />} />
-            {/* <Route path="support" element={<SupportHelp />} /> */}
+            <Route path="support" element={<SupportHelp />} />
           </Route>
         </Route>
 

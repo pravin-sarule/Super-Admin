@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom'; // Import useOutletContext
 import {
   LayoutDashboard,
   Users,
@@ -19,45 +19,79 @@ import {
   Table,
   Map,
   Layers,
-  LifeBuoy
+  LifeBuoy,
+  CreditCard, // Added for Subscription Management
+  HelpCircle // Added for Support and Help
 } from 'lucide-react';
 
-const Sidebar = ({ isOpen }) => {
+const Sidebar = ({ isOpen, userRole }) => { // Accept userRole as a prop
   const [openMenu, setOpenMenu] = useState(null);
+  // const { userRole } = useOutletContext(); // No longer needed, as userRole is a prop
+  console.log('Sidebar - userRole prop:', userRole);
 
   const handleMenuToggle = (menuName) => {
     setOpenMenu(openMenu === menuName ? null : menuName);
   };
 
-  const menuItems = [
+  const allMenuItems = [
     {
       name: 'Dashboard',
       path: '/dashboard',
-      icon: LayoutDashboard
+      icon: LayoutDashboard,
+      roles: ['super-admin', 'user-admin', 'account-admin', 'support']
     },
-    
-    
-   
-   
+    {
+      name: 'User Management',
+      path: '/dashboard/users',
+      icon: Users,
+      roles: ['super-admin', 'user-admin']
+    },
+    {
+      name: 'Admin Management',
+      path: '/dashboard/admins',
+      icon: Shield,
+      roles: ['super-admin']
+    },
     {
       name: 'Prompt Management',
       path: '/dashboard/prompts',
-      icon: Edit
+      icon: Edit,
+      roles: ['super-admin', 'user-admin']
     },
-   
+    {
+      name: 'Content Management',
+      path: '/dashboard/content', // Assuming a path for content management
+      icon: FileText,
+      roles: ['super-admin', 'user-admin']
+    },
+    {
+      name: 'Subscription Management',
+      path: '/dashboard/subscriptions', // Assuming a path for subscription management
+      icon: CreditCard,
+      roles: ['super-admin', 'account-admin']
+    },
+    {
+      name: 'Support & Help',
+      path: '/dashboard/support', // Assuming a path for support and help
+      icon: LifeBuoy,
+      roles: ['super-admin', 'support-admin']
+    },
+    {
+      name: 'Settings',
+      path: '/dashboard/settings',
+      icon: Settings,
+      roles: ['super-admin', 'user-admin', 'account-admin', 'support-admin']
+    }
   ];
 
+  const menuItems = allMenuItems.filter(item => item.roles.includes(userRole));
+
   return (
-    // <div
-    //   className={`bg-white text-gray-700 h-screen transition-all duration-300 ${
-    //     isOpen ? 'w-64' : 'w-16'
-    //   } flex flex-col shadow-lg border-r border-gray-200 fixed md:relative z-40`}
-    // >
     <div
-  className={`bg-white text-gray-700 h-screen transition-all duration-300 ${
-    isOpen ? 'w-80' : 'w-20'
-  } flex flex-col shadow-lg border-r border-gray-200 fixed md:relative z-40`}
->
+      className={`bg-white text-gray-700 h-screen transition-all duration-300 ${
+        isOpen ? 'w-80' : 'w-20'
+      } flex flex-col shadow-lg border-r border-gray-200 fixed md:relative z-40`}
+    >
       {/* Sidebar Header */}
       <div className="p-5 border-b border-gray-100">
         <div className="flex items-center">
@@ -66,7 +100,7 @@ const Sidebar = ({ isOpen }) => {
           </div>
           {isOpen && (
             <span className="text-gray-800 font-semibold text-lg whitespace-nowrap overflow-hidden">
-              Super Admin
+              {userRole ? userRole.replace('-', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 'Super Admin'}
             </span>
           )}
         </div>

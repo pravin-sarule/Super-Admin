@@ -40,7 +40,7 @@ const Header = ({ toggleSidebar }) => {
       <h1 className="text-xl md:text-2xl font-semibold text-gray-800"></h1>
       
       <div className="flex items-center">
-        <span className="mr-3 text-gray-600 font-medium hidden sm:inline">Welcome, Super Admin!</span>
+        <span className="mr-3 text-gray-600 font-medium hidden sm:inline">Welcome,Admin!</span>
         <img
           src="https://via.placeholder.com/40/6B7280/FFFFFF?text=A" // Placeholder for user profile image
           alt="User Profile"
