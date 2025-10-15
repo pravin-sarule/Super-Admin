@@ -19,6 +19,7 @@ const adminTemplateRoutes = require('./routes/adminTemplateRoutes');
 const planRoutes = require('./routes/planRoutes');
 const supportQueryRoutes = require('./routes/supportQueryRoutes');
 const secretRoutes = require('./routes/secretManagerRoutes');
+const contentRoutes = require('./routes/contentRoutes');
 const draftPool = require('./config/draftDB');
 const paymentPool = require('./config/payment_DB');
 const llmRoutes = require('./routes/llmRoutes');
@@ -72,6 +73,8 @@ app.use('/api/support-queries', supportQueryRoutes(pool));
 console.log('📌 /api/secrets        → Using docDB (docPool) ✨');
 app.use('/api/secrets', secretRoutes(docPool));
 
+console.log('📌 /api/secrets        → Using docDB (docPool) ✨');
+app.use('/api/contents', contentRoutes(docPool));
 
 console.log('📌 /api/secrets        → Using docDB (docPool) ✨');
 app.use('/api/llm', llmRoutes);
@@ -141,3 +144,23 @@ const startServer = async () => {
 };
 
 startServer();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
