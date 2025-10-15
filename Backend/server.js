@@ -26,10 +26,25 @@ const llmRoutes = require('./routes/llmRoutes');
 
 const app = express();
 
+// // --- CORS ---
+// const allowedOrigins = [
+//   'http://localhost:3001',
+//   'https://nexinteladmin.netlify.app'
+// ];
+
+// app.use(cors({
+//   origin: (origin, callback) => {
+//     if (!origin || allowedOrigins.includes(origin)) callback(null, true);
+//     else callback(new Error(`CORS blocked for origin: ${origin}`));
+//   },
+//   credentials: true
+// }));
+
+
 // --- CORS ---
 const allowedOrigins = [
   'http://localhost:3001',
-  'https://nexinteladmin.netlify.app'
+  'https://nexintel-super-admin.netlify.app'
 ];
 
 app.use(cors({
@@ -39,6 +54,7 @@ app.use(cors({
   },
   credentials: true
 }));
+
 
 // --- Middleware ---
 app.use(express.json());
