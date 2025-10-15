@@ -1,36 +1,4 @@
-// const express = require('express');
-// const router = express.Router();
-// const { protect, authorize } = require('../middleware/authMiddleware');
-// const pool = require('../config/db'); // Import the main pool
-// const {
-//   getCaseTypes,
-//   getSubTypesByCaseType,
-//   getCourts,
-//   createCaseType,
-//   createSubType,
-//   createCourt,
-//   deleteCaseType,
-//   deleteSubType,
-//   deleteCourt,
-// } = require('../controllers/contentController');
 
-// module.exports = (docPool) => {
-//   // ========== USER ROUTES ==========
-//   router.get('/case-types', getCaseTypes);
-//   router.get('/sub-types/:caseTypeId', getSubTypesByCaseType);
-//   router.get('/courts', getCourts);
-
-//   // ========== ADMIN ROUTES ==========
-//   // Use the main 'pool' for authentication middleware, but 'docPool' for controller functions
-//   router.post('/admin/case-types', protect(pool), authorize(['user-admin', 'super-admin']), createCaseType);
-//   router.post('/admin/sub-types', protect(pool), authorize(['user-admin', 'super-admin']), createSubType);
-//   router.post('/admin/courts', protect(pool), authorize(['user-admin', 'super-admin']), createCourt);
-//   router.delete('/admin/case-types/:id', protect(pool), authorize(['user-admin', 'super-admin']), deleteCaseType);
-//   router.delete('/admin/sub-types/:id', protect(pool), authorize(['user-admin', 'super-admin']), deleteSubType);
-//   router.delete('/admin/courts/:id', protect(pool), authorize(['user-admin', 'super-admin']), deleteCourt);
-
-//   return router;
-// };
 const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/authMiddleware');
