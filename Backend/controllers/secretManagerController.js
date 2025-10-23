@@ -237,9 +237,10 @@ const getAllSecrets = async (req, res) => {
 
   try {
     const result = await docDB.query(`
-      SELECT s.*, l.name AS llm_name 
+      SELECT s.*, l.name AS llm_name, c.method_name AS chunking_method_name
       FROM secret_manager s
       LEFT JOIN llm_models l ON s.llm_id = l.id
+      LEFT JOIN chunking_methods c ON s.chunking_method_id = c.id
       ORDER BY s.created_at DESC
     `);
     const rows = result.rows;
@@ -276,6 +277,7 @@ const createSecret = async (req, res) => {
     secret_manager_id,
     secret_value,
     llm_id,
+    chunking_method_id, // NEW: Chunking Method ID
     version = '1',
     created_by = 1,
     template_type = 'system',
@@ -287,6 +289,7 @@ const createSecret = async (req, res) => {
   } = req.body;
 
   if (!llm_id) return res.status(400).json({ message: 'llm_id is required' });
+  if (!chunking_method_id) return res.status(400).json({ message: 'chunking_method_id is required' });
 
   try {
     const parent = `projects/${GCLOUD_PROJECT_ID}`;
@@ -316,19 +319,19 @@ const createSecret = async (req, res) => {
         usage_count, success_rate, avg_processing_time,
         created_by, updated_by, created_at, updated_at,
         activated_at, last_used_at, template_metadata,
-        secret_manager_id, version, llm_id
+        secret_manager_id, version, llm_id, chunking_method_id
       ) VALUES (
         gen_random_uuid(), $1, $2, $3, $4,
         $5, $6, $7,
         $8, $8, now(), now(),
         now(), NULL, $9::jsonb,
-        $10, $11, $12
+        $10, $11, $12, $13
       ) RETURNING *;
     `, [
       name, description, template_type, status,
       usage_count, success_rate, avg_processing_time,
       created_by, JSON.stringify(template_metadata),
-      secret_manager_id, versionId, llm_id
+      secret_manager_id, versionId, llm_id, chunking_method_id
     ]);
 
     res.status(201).json({
@@ -350,12 +353,12 @@ const fetchSecretValueById = async (req, res) => {
 
   try {
     const result = await docDB.query(
-      'SELECT secret_manager_id, version, llm_id FROM secret_manager WHERE id = $1',
+      'SELECT secret_manager_id, version, llm_id, chunking_method_id FROM secret_manager WHERE id = $1',
       [id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Secret not found' });
 
-    const { secret_manager_id, version, llm_id } = result.rows[0];
+    const { secret_manager_id, version, llm_id, chunking_method_id } = result.rows[0];
     const secretName = `projects/${GCLOUD_PROJECT_ID}/secrets/${secret_manager_id}/versions/${version}`;
     const [accessResponse] = await secretClient.accessSecretVersion({ name: secretName });
     const value = accessResponse.payload.data.toString('utf8');
@@ -363,7 +366,10 @@ const fetchSecretValueById = async (req, res) => {
     const llmResult = await docDB.query('SELECT name FROM llm_models WHERE id = $1', [llm_id]);
     const llmName = llmResult.rows[0]?.name || null;
 
-    res.status(200).json({ secret_manager_id, version, value, llm_id, llmName });
+    const chunkingMethodResult = await docDB.query('SELECT method_name FROM chunking_methods WHERE id = $1', [chunking_method_id]);
+    const chunkingMethodName = chunkingMethodResult.rows[0]?.name || null;
+
+    res.status(200).json({ secret_manager_id, version, value, llm_id, llmName, chunking_method_id, chunkingMethodName });
   } catch (err) {
     console.error('Error fetching secret value:', err.message);
     res.status(500).json({ error: 'Failed to fetch secret: ' + err.message });
@@ -435,7 +441,8 @@ const updateSecret = async (req, res) => {
     status,
     template_metadata,
     secret_value,
-    llm_id,          // ✅ include llm_id from request body
+    llm_id,
+    chunking_method_id, // ✅ include chunking_method_id from request body
     updated_by = 1
   } = req.body;
 
@@ -456,19 +463,19 @@ const updateSecret = async (req, res) => {
       versionId = versionResponse.name.split('/').pop();
     }
 
-    // ✅ Updated SQL query to include llm_id
     const updateQuery = `
-      UPDATE secret_manager 
-      SET 
+      UPDATE secret_manager
+      SET
         name = COALESCE($1, name),
         description = COALESCE($2, description),
         status = COALESCE($3, status),
         template_metadata = COALESCE($4::jsonb, template_metadata),
         version = $5,
-        llm_id = COALESCE($6, llm_id),     -- ✅ update llm_id if provided
-        updated_by = $7,
+        llm_id = COALESCE($6, llm_id),
+        chunking_method_id = COALESCE($7, chunking_method_id),
+        updated_by = $8,
         updated_at = now()
-      WHERE id = $8
+      WHERE id = $9
       RETURNING *;
     `;
 
@@ -479,6 +486,7 @@ const updateSecret = async (req, res) => {
       template_metadata ? JSON.stringify(template_metadata) : null,
       versionId,
       llm_id || null,
+      chunking_method_id || null,
       updated_by,
       id
     ]);

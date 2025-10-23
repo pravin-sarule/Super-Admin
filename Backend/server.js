@@ -23,6 +23,7 @@ const contentRoutes = require('./routes/contentRoutes');
 const draftPool = require('./config/draftDB');
 const paymentPool = require('./config/payment_DB');
 const llmRoutes = require('./routes/llmRoutes');
+const chunkingMethodRoutes = require('./routes/chunkingMethodRoutes');
 
 const app = express();
 
@@ -94,6 +95,9 @@ app.use('/api/contents', contentRoutes(docPool));
 
 console.log('📌 /api/secrets        → Using docDB (docPool) ✨');
 app.use('/api/llm', llmRoutes);
+
+console.log('📌 /api/chunking-methods → Using docDB (docPool) ✨');
+app.use('/api/chunking-methods', chunkingMethodRoutes);
 
 console.log('='.repeat(60) + '\n');
 
