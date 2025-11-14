@@ -33,6 +33,51 @@ const addLLMModel = async (req, res) => {
   }
 };
 
+// Create a new LLM max token configuration
+const createMaxTokenEntry = async (req, res) => {
+  const { model_id, provider, model_name, max_output_tokens } = req.body;
+
+  if (!model_id || !provider || !model_name || max_output_tokens === undefined) {
+    return res.status(400).json({
+      message: 'model_id, provider, model_name, and max_output_tokens are required',
+    });
+  }
+
+  const parsedModelId = parseInt(model_id, 10);
+  if (Number.isNaN(parsedModelId) || parsedModelId <= 0) {
+    return res.status(400).json({ message: 'model_id must be a positive integer' });
+  }
+
+  const parsedTokens = parseInt(max_output_tokens, 10);
+  if (Number.isNaN(parsedTokens) || parsedTokens <= 0) {
+    return res.status(400).json({ message: 'max_output_tokens must be a positive integer' });
+  }
+
+  try {
+    const modelExists = await pool.query('SELECT id FROM llm_models WHERE id = $1', [parsedModelId]);
+    if (modelExists.rowCount === 0) {
+      return res.status(400).json({ message: 'LLM model not found for the given model_id' });
+    }
+
+    const result = await pool.query(
+      `
+        INSERT INTO llm_max_tokens (model_id, provider, model_name, max_output_tokens)
+        VALUES ($1, $2, $3, $4)
+        RETURNING *
+      `,
+      [parsedModelId, provider.trim(), model_name.trim(), parsedTokens]
+    );
+
+    res.status(201).json({
+      message: 'LLM max token entry created successfully',
+      data: result.rows[0],
+    });
+  } catch (error) {
+    console.error('Error creating LLM max token entry:', error.message);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 // Get all LLM max token configurations
 const getAllMaxTokenEntries = async (req, res) => {
   try {
@@ -99,6 +144,7 @@ const updateMaxTokenEntry = async (req, res) => {
 module.exports = {
   getAllLLMModels,
   addLLMModel,
+  createMaxTokenEntry,
   getAllMaxTokenEntries,
   updateMaxTokenEntry,
 };
