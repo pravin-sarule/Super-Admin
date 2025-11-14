@@ -34,9 +34,26 @@ const LLMManagement = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [llmMaxTokens, setLlmMaxTokens] = useState([]);
+  const [editingEntryId, setEditingEntryId] = useState(null);
+  const [maxTokenEditForm, setMaxTokenEditForm] = useState({
+    provider: '',
+    model_name: '',
+    max_output_tokens: '',
+  });
+  const [maxTokenSavingId, setMaxTokenSavingId] = useState(null);
+  const [isAddingNewEntry, setIsAddingNewEntry] = useState(false);
+  const [newEntryForm, setNewEntryForm] = useState({
+    provider: '',
+    model_name: '',
+    max_output_tokens: '',
+    model_id: '',
+  });
+  const [addingEntryLoading, setAddingEntryLoading] = useState(false);
 
   const LLM_API_URL = `${API_BASE_URL}/llm`;
   const CUSTOM_QUERY_API_URL = `${API_BASE_URL}/custom-query`;
+  const LLM_MAX_TOKENS_API_URL = `${API_BASE_URL}/llm/max-tokens`;
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -73,7 +90,7 @@ const LLMManagement = () => {
   useEffect(() => {
     if (!userInfo) return;
     const fetchData = async () => {
-      await Promise.all([fetchLlmModels(), fetchCurrentSelection()]);
+      await Promise.all([fetchLlmModels(), fetchCurrentSelection(), fetchLlmMaxTokens()]);
       setLoading(false);
     };
     fetchData();
@@ -104,6 +121,23 @@ const LLMManagement = () => {
     }
   };
 
+  const fetchLlmMaxTokens = async () => {
+    try {
+      const response = await axios.get(LLM_MAX_TOKENS_API_URL, {
+        headers: getAuthHeaders(),
+      });
+      setLlmMaxTokens(response.data || []);
+    } catch (error) {
+      console.error('Error fetching LLM max token entries:', error);
+      MySwal.fire({
+        icon: 'error',
+        title: 'Unable to load max tokens',
+        text: error.response?.data?.message || 'Please try again later.',
+        confirmButtonColor: '#dc2626',
+      });
+    }
+  };
+
   const fetchCurrentSelection = async () => {
     try {
       const response = await axios.get(CUSTOM_QUERY_API_URL, {
@@ -126,7 +160,7 @@ const LLMManagement = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchLlmModels(), fetchCurrentSelection()]);
+    await Promise.all([fetchLlmModels(), fetchCurrentSelection(), fetchLlmMaxTokens()]);
     setRefreshing(false);
   };
 
@@ -171,14 +205,199 @@ const LLMManagement = () => {
     }
   };
 
-  const filteredModels = useMemo(() => {
+  const filteredMaxTokens = useMemo(() => {
     const query = searchValue.toLowerCase();
-    return llmModels.filter(
-      (model) =>
-        model.name?.toLowerCase().includes(query) ||
-        (model.provider && model.provider.toLowerCase().includes(query))
-    );
-  }, [llmModels, searchValue]);
+    return llmMaxTokens.filter((entry) => {
+      const provider = entry.provider?.toLowerCase() || '';
+      const modelName = entry.model_name?.toLowerCase() || '';
+      return provider.includes(query) || modelName.includes(query);
+    });
+  }, [llmMaxTokens, searchValue]);
+
+  const beginEditingEntry = (entry) => {
+    setEditingEntryId(entry.id);
+    setMaxTokenEditForm({
+      provider: entry.provider || '',
+      model_name: entry.model_name || '',
+      max_output_tokens: entry.max_output_tokens?.toString() || '',
+    });
+  };
+
+  const cancelEditingEntry = () => {
+    setEditingEntryId(null);
+    setMaxTokenEditForm({
+      provider: '',
+      model_name: '',
+      max_output_tokens: '',
+    });
+  };
+
+  const handleEditFieldChange = (field, value) => {
+    setMaxTokenEditForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleNewEntryFieldChange = (field, value) => {
+    setNewEntryForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const startAddingNewEntry = () => {
+    setIsAddingNewEntry(true);
+    setNewEntryForm({
+      provider: '',
+      model_name: '',
+      max_output_tokens: '',
+      model_id: '',
+    });
+  };
+
+  const cancelNewEntry = () => {
+    setIsAddingNewEntry(false);
+    setNewEntryForm({
+      provider: '',
+      model_name: '',
+      max_output_tokens: '',
+      model_id: '',
+    });
+  };
+
+  const saveMaxTokenEntry = async () => {
+    if (!editingEntryId) return;
+
+    const { provider, model_name, max_output_tokens } = maxTokenEditForm;
+
+    if (!provider.trim() || !model_name.trim() || !max_output_tokens) {
+      MySwal.fire({
+        icon: 'warning',
+        title: 'Incomplete details',
+        text: 'Please provide provider, model name, and max tokens.',
+        confirmButtonColor: '#f97316',
+      });
+      return;
+    }
+
+    const parsedTokens = parseInt(max_output_tokens, 10);
+    if (Number.isNaN(parsedTokens) || parsedTokens <= 0) {
+      MySwal.fire({
+        icon: 'warning',
+        title: 'Invalid max tokens',
+        text: 'Max tokens must be a positive number.',
+        confirmButtonColor: '#f97316',
+      });
+      return;
+    }
+
+    try {
+      setMaxTokenSavingId(editingEntryId);
+      await axios.put(
+        `${LLM_MAX_TOKENS_API_URL}/${editingEntryId}`,
+        {
+          provider: provider.trim(),
+          model_name: model_name.trim(),
+          max_output_tokens: parsedTokens,
+        },
+        { headers: getAuthHeaders() }
+      );
+
+      await fetchLlmMaxTokens();
+      cancelEditingEntry();
+
+      MySwal.fire({
+        icon: 'success',
+        title: 'Max tokens updated',
+        text: 'The LLM max token entry was saved successfully.',
+        confirmButtonColor: '#16a34a',
+        timer: 2000,
+      });
+    } catch (error) {
+      console.error('Error updating max token entry:', error);
+      MySwal.fire({
+        icon: 'error',
+        title: 'Update failed',
+        text: error.response?.data?.message || 'Unable to update this entry.',
+        confirmButtonColor: '#dc2626',
+      });
+    } finally {
+      setMaxTokenSavingId(null);
+    }
+  };
+
+  const saveNewMaxTokenEntry = async () => {
+    const { provider, model_name, max_output_tokens, model_id } = newEntryForm;
+
+    if (!provider.trim() || !model_name.trim() || !max_output_tokens || !model_id) {
+      MySwal.fire({
+        icon: 'warning',
+        title: 'Incomplete details',
+        text: 'Please provide provider, model name, linked model, and max tokens.',
+        confirmButtonColor: '#f97316',
+      });
+      return;
+    }
+
+    const parsedTokens = parseInt(max_output_tokens, 10);
+    const parsedModelId = parseInt(model_id, 10);
+
+    if (Number.isNaN(parsedTokens) || parsedTokens <= 0) {
+      MySwal.fire({
+        icon: 'warning',
+        title: 'Invalid max tokens',
+        text: 'Max tokens must be a positive number.',
+        confirmButtonColor: '#f97316',
+      });
+      return;
+    }
+
+    if (Number.isNaN(parsedModelId) || parsedModelId <= 0) {
+      MySwal.fire({
+        icon: 'warning',
+        title: 'Invalid model selection',
+        text: 'Please select a valid model.',
+        confirmButtonColor: '#f97316',
+      });
+      return;
+    }
+
+    try {
+      setAddingEntryLoading(true);
+      await axios.post(
+        LLM_MAX_TOKENS_API_URL,
+        {
+          provider: provider.trim(),
+          model_name: model_name.trim(),
+          max_output_tokens: parsedTokens,
+          model_id: parsedModelId,
+        },
+        { headers: getAuthHeaders() }
+      );
+
+      await fetchLlmMaxTokens();
+      cancelNewEntry();
+
+      MySwal.fire({
+        icon: 'success',
+        title: 'Max tokens entry added',
+        text: 'The new LLM max token entry was created successfully.',
+        confirmButtonColor: '#16a34a',
+        timer: 2000,
+      });
+    } catch (error) {
+      console.error('Error creating max token entry:', error);
+      MySwal.fire({
+        icon: 'error',
+        title: 'Creation failed',
+        text: error.response?.data?.message || 'Unable to add this entry.',
+        confirmButtonColor: '#dc2626',
+      });
+    } finally {
+      setAddingEntryLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -292,64 +511,199 @@ const LLMManagement = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-800">Available LLM Models</h2>
-              <p className="text-sm text-gray-500">Search and review all registered LLM options.</p>
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">LLM Max Token Settings</h2>
+                <p className="text-sm text-gray-500">Review and edit provider, model names, and admin-defined max output tokens.</p>
+              </div>
+              <div className="flex flex-wrap gap-3 items-center">
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Search by provider or model..."
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                    className="pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <button
+                  onClick={startAddingNewEntry}
+                  disabled={isAddingNewEntry}
+                  className="inline-flex items-center px-4 py-2.5 rounded-lg text-white bg-blue-600 hover:bg-blue-700 text-sm font-semibold disabled:opacity-50"
+                >
+                  + Add Max Token Entry
+                </button>
+              </div>
             </div>
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              <input
-                type="text"
-                placeholder="Search LLMs..."
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                className="pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Created</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredModels.length === 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
                   <tr>
-                    <td colSpan="3" className="px-6 py-10 text-center text-gray-500">
-                      No LLM models match your search.
-                    </td>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Provider</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Model Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Linked Model</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Max Tokens</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Updated</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
-                ) : (
-                  filteredModels.map((model) => (
-                    <tr key={model.id} className="hover:bg-gray-50">
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {isAddingNewEntry && (
+                    <tr className="bg-blue-50/50">
                       <td className="px-6 py-4">
-                        <p className="text-sm font-semibold text-gray-900">{model.name}</p>
+                        <input
+                          type="text"
+                          value={newEntryForm.provider}
+                          onChange={(e) => handleNewEntryFieldChange('provider', e.target.value)}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Provider"
+                        />
                       </td>
                       <td className="px-6 py-4">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                            model.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                          }`}
+                        <input
+                          type="text"
+                          value={newEntryForm.model_name}
+                          onChange={(e) => handleNewEntryFieldChange('model_name', e.target.value)}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Model name"
+                        />
+                      </td>
+                      <td className="px-6 py-4">
+                        <select
+                          value={newEntryForm.model_id}
+                          onChange={(e) => handleNewEntryFieldChange('model_id', e.target.value)}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
-                          {model.is_active ? 'Active' : 'Inactive'}
-                        </span>
+                          <option value="">Select linked LLM</option>
+                          {llmModels.map((model) => (
+                            <option key={model.id} value={model.id}>
+                              {model.name}
+                            </option>
+                          ))}
+                        </select>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {model.created_at ? new Date(model.created_at).toLocaleDateString() : '—'}
+                      <td className="px-6 py-4">
+                        <input
+                          type="number"
+                          min="1"
+                          value={newEntryForm.max_output_tokens}
+                          onChange={(e) => handleNewEntryFieldChange('max_output_tokens', e.target.value)}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Max tokens"
+                        />
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">—</td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={cancelNewEntry}
+                            className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-100"
+                            disabled={addingEntryLoading}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={saveNewMaxTokenEntry}
+                            disabled={addingEntryLoading}
+                            className="px-4 py-2 rounded-lg text-white bg-green-600 hover:bg-green-700 text-sm font-semibold disabled:opacity-50"
+                          >
+                            {addingEntryLoading ? 'Saving...' : 'Save'}
+                          </button>
+                        </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  )}
+                  {filteredMaxTokens.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-10 text-center text-gray-500">
+                        No LLM max token entries match your search.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredMaxTokens.map((entry) => {
+                      const isEditing = editingEntryId === entry.id;
+                      return (
+                        <tr key={entry.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4">
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                value={maxTokenEditForm.provider}
+                                onChange={(e) => handleEditFieldChange('provider', e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            ) : (
+                              <p className="text-sm font-semibold text-gray-900 capitalize">{entry.provider}</p>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                value={maxTokenEditForm.model_name}
+                                onChange={(e) => handleEditFieldChange('model_name', e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            ) : (
+                              <p className="text-sm font-semibold text-gray-900">{entry.model_name}</p>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            <p className="text-sm text-gray-900">{entry.llm_model_name || '—'}</p>
+                          </td>
+                          <td className="px-6 py-4">
+                            {isEditing ? (
+                              <input
+                                type="number"
+                                min="1"
+                                value={maxTokenEditForm.max_output_tokens}
+                                onChange={(e) => handleEditFieldChange('max_output_tokens', e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            ) : (
+                              <p className="text-sm text-gray-900">{entry.max_output_tokens?.toLocaleString() || '—'}</p>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-600">
+                            {entry.updated_at ? new Date(entry.updated_at).toLocaleString() : '—'}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            {isEditing ? (
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  onClick={cancelEditingEntry}
+                                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-100"
+                                  disabled={maxTokenSavingId === entry.id}
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={saveMaxTokenEntry}
+                                  disabled={maxTokenSavingId === entry.id}
+                                  className="px-4 py-2 rounded-lg text-white bg-blue-600 hover:bg-blue-700 text-sm font-semibold disabled:opacity-50"
+                                >
+                                  {maxTokenSavingId === entry.id ? 'Saving...' : 'Save'}
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => beginEditingEntry(entry)}
+                                className="px-4 py-2 rounded-lg border border-blue-200 text-blue-600 text-sm font-semibold hover:bg-blue-50"
+                              >
+                                Edit
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
       </div>
     </div>
   );
