@@ -21,7 +21,8 @@ import {
   Layers,
   LifeBuoy,
   CreditCard, // Added for Subscription Management
-  HelpCircle // Added for Support and Help
+  HelpCircle, // Added for Support and Help
+  Bot
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, userRole }) => { // Accept userRole as a prop
@@ -56,6 +57,12 @@ const Sidebar = ({ isOpen, userRole }) => { // Accept userRole as a prop
       name: 'Prompt Management',
       path: '/dashboard/prompts',
       icon: Edit,
+      roles: ['super-admin']
+    },
+    {
+      name: 'LLM Management',
+      path: '/dashboard/llm-management',
+      icon: Bot,
       roles: ['super-admin']
     },
     {
