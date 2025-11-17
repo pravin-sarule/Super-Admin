@@ -3,12 +3,12 @@ import { Eye, Edit, Save, FileText, Trash2, PlusCircle, X, ChevronLeft, ChevronR
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
+import { API_BASE_URL } from '../../config';
 
 const MySwal = withReactContent(Swal);
 
-// API Base URL - Use relative path for local development (will be proxied by Vite)
-// For production, use: 'https://super-adimn-backend-110685455967.asia-south1.run.app/api/system-prompts'
-const API_BASE_URL = '/api/system-prompts';
+// System Prompts API URL
+const SYSTEM_PROMPTS_API_URL = `${API_BASE_URL}/system-prompts`;
 
 const SystemPromptManagement = () => {
   const [prompts, setPrompts] = useState([]);
@@ -50,7 +50,7 @@ const SystemPromptManagement = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(API_BASE_URL, {
+      const response = await axios.get(SYSTEM_PROMPTS_API_URL, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -130,7 +130,7 @@ const SystemPromptManagement = () => {
     try {
       const token = getToken();
       const response = await axios.put(
-        `${API_BASE_URL}/${selectedPrompt.id}`,
+        `${SYSTEM_PROMPTS_API_URL}/${selectedPrompt.id}`,
         { system_prompt: editedPrompt.system_prompt.trim() },
         {
           headers: {
@@ -185,7 +185,7 @@ const SystemPromptManagement = () => {
       setDeleteLoading(prev => ({ ...prev, [id]: true }));
       try {
         const token = getToken();
-        await axios.delete(`${API_BASE_URL}/${id}`, {
+        await axios.delete(`${SYSTEM_PROMPTS_API_URL}/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -234,7 +234,7 @@ const SystemPromptManagement = () => {
     try {
       const token = getToken();
       const response = await axios.post(
-        API_BASE_URL,
+        SYSTEM_PROMPTS_API_URL,
         { system_prompt: newPrompt.system_prompt.trim() },
         {
           headers: {
