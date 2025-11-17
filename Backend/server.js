@@ -25,6 +25,7 @@ const paymentPool = require('./config/payment_DB');
 const llmRoutes = require('./routes/llmRoutes');
 const chunkingMethodRoutes = require('./routes/chunkingMethodRoutes');
 const customQueryRoutes = require('./routes/customQueryRoutes');
+const systemPromptRoutes = require('./routes/systemPromptRoutes');
 
 const app = express();
 
@@ -46,6 +47,7 @@ const app = express();
 // --- CORS ---
 const allowedOrigins = [
   'http://localhost:3001',
+  'http://localhost:4000',
   'https://nexintel-super-admin.netlify.app'
 ];
 
@@ -72,6 +74,9 @@ console.log('='.repeat(60));
 // --- Routes ---
 
 app.use('/api/admins', adminRoutes(pool));
+
+console.log('📌 /api/system-prompts → Using docDB (docPool) for data, Main DB (pool) for auth');
+app.use('/api/system-prompts', systemPromptRoutes(pool)); // pool for auth, controller uses docDB
 
 console.log('📌 /api/auth           → Using Main DB (pool)');
 app.use('/api/auth', authRoutes(pool));
@@ -108,13 +113,55 @@ console.log('='.repeat(60) + '\n');
 // --- 404 ---
 app.use((req, res) => res.status(404).json({ message: 'API Endpoint Not Found' }));
 
+// --- Initialize system_prompts table if it doesn't exist ---
+const initializeSystemPromptsTable = async () => {
+  try {
+    // Check if table exists in docDB
+    const checkTable = await docPool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'system_prompts'
+      );
+    `);
+
+    if (!checkTable.rows[0].exists) {
+      console.log('📋 Creating system_prompts table in docDB...');
+      await docPool.query(`
+        CREATE TABLE system_prompts (
+          id SERIAL PRIMARY KEY,
+          system_prompt TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        );
+      `);
+      
+      // Create index for faster queries
+      await docPool.query(`
+        CREATE INDEX IF NOT EXISTS idx_system_prompts_created_at 
+        ON system_prompts(created_at DESC);
+      `);
+      
+      console.log('✅ system_prompts table created successfully!');
+    } else {
+      console.log('✅ system_prompts table already exists');
+    }
+  } catch (error) {
+    console.error('❌ Error initializing system_prompts table:', error.message);
+    throw error;
+  }
+};
+
 // --- Start server ---
 const startServer = async () => {
   try {
     await sequelize.sync({ alter: true });
     console.log('✅ Sequelize Database synced!');
 
-    const PORT = process.env.PORT || 5000;
+    // Initialize system_prompts table
+    await initializeSystemPromptsTable();
+
+    const PORT = process.env.PORT || 4000;
     const server = app.listen(PORT, () => {
       console.log('\n' + '='.repeat(60));
       console.log('🚀 SERVER STARTED SUCCESSFULLY');
