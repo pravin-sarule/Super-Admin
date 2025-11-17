@@ -12,6 +12,7 @@ import ContentManagement from './pages/dashboard/ContentManagement';
 import SubscriptionManagement from './pages/dashboard/SubscriptionManagement';
 import SupportHelp from './pages/dashboard/SupportHelp';
 import PromptManagement from './pages/dashboard/PromptManagement';
+import SystemPromptManagement from './pages/dashboard/SystemPromptManagement';
 import LLMManagement from './pages/dashboard/LLMManagement';
 import './App.css';
 import './index.css';
@@ -66,6 +67,7 @@ function App() {
             {/* <Route path="templates" element={<TemplateManagement />} /> */}
             <Route path="subscriptions" element={<SubscriptionManagement />} />
             <Route path="prompts" element={<PromptManagement />} />
+            <Route path="system-prompts" element={<SystemPromptManagement />} />
             <Route path="llm-management" element={<LLMManagement />} />
             <Route path="support" element={<SupportHelp />} />
           </Route>

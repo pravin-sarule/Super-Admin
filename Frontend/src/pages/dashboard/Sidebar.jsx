@@ -22,7 +22,8 @@ import {
   LifeBuoy,
   CreditCard, // Added for Subscription Management
   HelpCircle, // Added for Support and Help
-  Bot
+  Bot,
+  MessageSquare // Added for System Prompt Management
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, userRole }) => { // Accept userRole as a prop
@@ -57,6 +58,12 @@ const Sidebar = ({ isOpen, userRole }) => { // Accept userRole as a prop
       name: 'Prompt Management',
       path: '/dashboard/prompts',
       icon: Edit,
+      roles: ['super-admin']
+    },
+    {
+      name: 'System Prompt Management',
+      path: '/dashboard/system-prompts',
+      icon: MessageSquare,
       roles: ['super-admin']
     },
     {
